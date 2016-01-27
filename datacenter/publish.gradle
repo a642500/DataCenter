@@ -77,7 +77,7 @@ install {
 
 bintray {
     user = BINTRAY_USER
-    key = BINTRAY_API_KEY
+    key = Properties.hasProperty("BINTRAY_API_KEY") ? BINTRAY_API_KEY : ""
     configurations = ['archives']
     pkg {
         repo = 'maven'
