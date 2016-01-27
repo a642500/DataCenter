@@ -24,4 +24,8 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
-apply from: 'private.gradle'
+if (rootProject.file('private.gradle').exists()) {
+    apply from: ('private.gradle')
+}
+
+apply from: 'public.gradle'
