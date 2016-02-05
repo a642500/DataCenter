@@ -5,7 +5,7 @@ android {
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        minSdkVersion 9
+        minSdkVersion 11
         targetSdkVersion 23
         versionCode PROJ_VERSION_CODE
         versionName PROJ_VERSION
@@ -23,6 +23,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile "com.android.support:recyclerview-v7:23.1.1"
 }
 
 apply from: ('publish.gradle')
