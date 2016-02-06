@@ -24,6 +24,8 @@ public interface DataCenter<T extends Updatable> {
 
     void loadNext();
 
+    void release();
+
     interface DataLoader<T> {
         List<T> loadOptional(int page);
 

@@ -5,7 +5,7 @@ import android.support.v7.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,7 +20,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     private final List<T> mData;
     private final LoaderDelegate<T> mLoaderDelegate = new LoaderDelegate<T>();
     private OnEndListener mOnEndListener;
-    private Executor sExecutor = Executors.newFixedThreadPool(2);
+    private ExecutorService sExecutor = Executors.newFixedThreadPool(2);
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private AtomicBoolean pendingReset = new AtomicBoolean(false);
     private AtomicInteger page = new AtomicInteger(START_PAGE);
@@ -136,6 +136,14 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         if (!pendingReset.get())
             mSwipeRefreshLayout.setEnabled(false);
         mCurrentTask.executeOnExecutor(sExecutor, page.get());
+    }
+
+    @Override
+    public void release() {
+        if (mCurrentTask != null) {
+            mCurrentTask.cancel(true);
+        }
+        sExecutor.shutdownNow();
     }
 
     @Override
