@@ -1,6 +1,5 @@
 package co.yishun.library.datacenter;
 
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     private final LoaderDelegate<T> mLoaderDelegate = new LoaderDelegate<T>();
     private OnEndListener mOnEndListener;
     private ExecutorService sExecutor = Executors.newFixedThreadPool(2);
-    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private Refreshable mRefreshable;
     private AtomicBoolean pendingReset = new AtomicBoolean(false);
     private AtomicInteger page = new AtomicInteger(START_PAGE);
     private DoubleAsyncTask<Integer, Void, List<T>> mCurrentTask;
@@ -53,16 +52,16 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     }
 
     private void setRefreshing(boolean refreshing) {
-        if (mSwipeRefreshLayout != null) {
-            mSwipeRefreshLayout.setRefreshing(refreshing);
+        if (mRefreshable != null) {
+            mRefreshable.setRefreshing(refreshing);
         }
     }
 
     @Override
-    public void setSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout) {
-        mSwipeRefreshLayout = swipeRefreshLayout;
-        if (swipeRefreshLayout != null)
-            swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+    public void setRefreshable(Refreshable refreshable) {
+        mRefreshable = refreshable;
+        if (refreshable != null)
+            refreshable.setOnRefreshListener(new Refreshable.OnRefreshListener() {
                 @Override
                 public void onRefresh() {
                     reset();
@@ -90,7 +89,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
 
                     mCurrentTask = null;
                     setRefreshing(false);
-                    mSwipeRefreshLayout.setEnabled(true);
+                    mRefreshable.setEnabled(true);
                 } else {
                     onSuccess(page.get());
                     update(result);
@@ -100,7 +99,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
 
                         mCurrentTask = null;
                         setRefreshing(false);
-                        mSwipeRefreshLayout.setEnabled(true);
+                        mRefreshable.setEnabled(true);
                     }
                 }
             }
@@ -134,7 +133,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
             }
         };
         if (!pendingReset.get())
-            mSwipeRefreshLayout.setEnabled(false);
+            mRefreshable.setEnabled(false);
         mCurrentTask.executeOnExecutor(sExecutor, page.get());
     }
 

@@ -1,6 +1,5 @@
 package co.yishun.library.datacenter;
 
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.RecyclerView;
 
 import java.util.List;
@@ -18,7 +17,7 @@ public interface DataCenter<T extends Updatable> {
 
     void setOnEndListener(OnEndListener listener);
 
-    void setSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout);
+    void setRefreshable(Refreshable refreshable);
 
     void reset();
 

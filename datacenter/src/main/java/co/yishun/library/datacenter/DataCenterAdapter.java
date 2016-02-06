@@ -2,7 +2,6 @@ package co.yishun.library.datacenter;
 
 import android.content.Context;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.RecyclerView;
 
 import java.util.List;
@@ -20,15 +19,19 @@ public abstract class DataCenterAdapter<T extends Updatable, VH extends Recycler
         mDataCenter.setObservableAdapter(this);
     }
 
-    public void setSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout) {
-        mDataCenter.setSwipeRefreshLayout(swipeRefreshLayout);
+    public void setRefreshable(Refreshable refreshable) {
+        mDataCenter.setRefreshable(refreshable);
+    }
+
+    public void release() {
+        mDataCenter.release();
     }
 
     public Context getContext() {
         return mContext;
     }
 
-    public void setOnFailListener(DataCenter.OnEndListener listener) {
+    public void setOnEndListener(DataCenter.OnEndListener listener) {
         mDataCenter.setOnEndListener(listener);
     }
 
