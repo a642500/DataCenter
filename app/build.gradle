@@ -26,6 +26,8 @@ def SUPPORT_VERSION = '23.1.1'
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
+    compile "com.android.support:appcompat-v7:$SUPPORT_VERSION"
     compile "com.android.support:recyclerview-v7:$SUPPORT_VERSION"
+    compile 'com.malinskiy:superrecyclerview:1.1.1'
     compile project(':datacenter')
 }
