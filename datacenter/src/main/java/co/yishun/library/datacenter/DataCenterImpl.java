@@ -14,12 +14,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created by carlos on 2/5/16.
  */
 public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
+    public static final int START_PAGE = 0;
+    public static final int RESET_PAGE = -1;
     private final AdapterDelegate mAdapterDelegate = new AdapterDelegate();
-    private OnEndListener mOnEndListener;
-
     private final List<T> mData;
     private final LoaderDelegate<T> mLoaderDelegate = new LoaderDelegate<T>();
+    private OnEndListener mOnEndListener;
     private Executor sExecutor = Executors.newFixedThreadPool(2);
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private AtomicBoolean pendingReset = new AtomicBoolean(false);
+    private AtomicInteger page = new AtomicInteger(START_PAGE);
+    private DoubleAsyncTask<Integer, Void, List<T>> mCurrentTask;
 
     DataCenterImpl() {
         mData = new ArrayList<>();
@@ -31,7 +36,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     }
 
     @Override
-    public void setOnFailListener(OnEndListener listener) {
+    public void setOnEndListener(OnEndListener listener) {
         mOnEndListener = listener;
     }
 
@@ -47,14 +52,11 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         }
     }
 
-    private SwipeRefreshLayout mSwipeRefreshLayout;
-
     private void setRefreshing(boolean refreshing) {
         if (mSwipeRefreshLayout != null) {
             mSwipeRefreshLayout.setRefreshing(refreshing);
         }
     }
-
 
     @Override
     public void setSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout) {
@@ -74,16 +76,6 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         page.set(0);
         pendingReset.set(true);
     }
-
-    private AtomicBoolean pendingReset = new AtomicBoolean(false);
-
-    public static final int START_PAGE = 0;
-    public static final int RESET_PAGE = -1;
-
-
-    private AtomicInteger page = new AtomicInteger(START_PAGE);
-
-    private DoubleAsyncTask<Integer, Void, List<T>> mCurrentTask;
 
     @Override
     public void loadNext() {

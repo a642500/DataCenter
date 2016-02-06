@@ -16,7 +16,7 @@ public interface DataCenter<T extends Updatable> {
 
     void setLoader(DataLoader<T> dataLoader);
 
-    void setOnFailListener(OnEndListener listener);
+    void setOnEndListener(OnEndListener listener);
 
     void setSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout);
 

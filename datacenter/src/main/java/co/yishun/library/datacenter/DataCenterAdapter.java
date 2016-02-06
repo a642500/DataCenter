@@ -12,25 +12,29 @@ import java.util.List;
  */
 public abstract class DataCenterAdapter<T extends Updatable, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
     private DataCenter<T> mDataCenter;
+    private Context mContext;
+
+    public DataCenterAdapter(FragmentActivity activity) {
+        mContext = activity.getApplicationContext();
+        mDataCenter = DataCenters.getDataCenter();
+        mDataCenter.setObservableAdapter(this);
+    }
 
     public void setSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout) {
         mDataCenter.setSwipeRefreshLayout(swipeRefreshLayout);
     }
-
-    private Context mContext;
 
     public Context getContext() {
         return mContext;
     }
 
     public void setOnFailListener(DataCenter.OnEndListener listener) {
-        mDataCenter.setOnFailListener(listener);
+        mDataCenter.setOnEndListener(listener);
     }
 
     public void setLoader(DataCenter.DataLoader<T> dataLoader) {
         mDataCenter.setLoader(dataLoader);
     }
-
 
     public void reset() {
         mDataCenter.reset();
@@ -42,12 +46,6 @@ public abstract class DataCenterAdapter<T extends Updatable, VH extends Recycler
 
     public List<T> data() {
         return mDataCenter.data();
-    }
-
-    public DataCenterAdapter(FragmentActivity activity) {
-        mContext = activity.getApplicationContext();
-        mDataCenter = DataCenters.getDataCenter();
-        mDataCenter.setObservableAdapter(this);
     }
 
     @Override
