@@ -1,13 +1,17 @@
 package co.yishun.library.datacenter;
 
 import android.support.v7.widget.RecyclerView;
+import android.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by carlos on 2/5/16.
@@ -23,7 +27,8 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     private Refreshable mRefreshable;
     private AtomicBoolean pendingReset = new AtomicBoolean(false);
     private AtomicInteger page = new AtomicInteger(START_PAGE);
-    private DoubleAsyncTask<Integer, Void, List<T>> mCurrentTask;
+    private DoubleAsyncTask<Integer, Void, Pair<Integer, List<T>>> mCurrentTask;
+    private Lock pageLock = new ReentrantLock();
 
     DataCenterImpl() {
         mData = new ArrayList<>();
@@ -78,25 +83,35 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
 
     @Override
     public void loadNext() {
-        mCurrentTask = new DoubleAsyncTask<Integer, Void, List<T>>() {
+        if (mCurrentTask != null) {
+            return;
+        }
+        mCurrentTask = new DoubleAsyncTask<Integer, Void, Pair<Integer, List<T>>>() {
             @Override
-            protected void onPostExecute(List<T> result) {
+            protected void onPostExecute(Pair<Integer, List<T>> requestAndResult) {
+                int pageCopy = requestAndResult.first;
                 if (pendingReset.get()) {
                     return;// handle by necessary post only, skip
                 }
-                if (result == null) {
-                    onFail(page.get());
+                if (requestAndResult.second == null) {
+                    onFail(pageCopy);
 
                     mCurrentTask = null;
                     setRefreshing(false);
                     mRefreshable.setEnabled(true);
                 } else {
-                    onSuccess(page.get());
-                    update(result);
-                    page.incrementAndGet();
+                    pageLock.lock();
+
+                    if (pageCopy == page.get()) {
+                        // Difference means those code had been called once.
+                        add(requestAndResult.second);
+                        onSuccess(pageCopy);
+                        page.incrementAndGet();
+                    } else {
+                        update(requestAndResult.second);
+                    }
                     if (post) {
                         // last callback
-
                         mCurrentTask = null;
                         setRefreshing(false);
                         mRefreshable.setEnabled(true);
@@ -105,15 +120,14 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
             }
 
             @Override
-            protected void onNecessaryPostExecute(List<T> ts) {
+            protected void onNecessaryPostExecute(Pair<Integer, List<T>> requestAndResult) {
                 if (pendingReset.get()) {
-                    if (ts == null) {
+                    if (requestAndResult.second == null) {
                         onFail(RESET_PAGE);
                     } else {
                         page.incrementAndGet();
                         mData.clear();
-                        data().addAll(ts);
-                        mAdapterDelegate.notifyDataSetChanged();
+                        add(requestAndResult.second);
                         onSuccess(RESET_PAGE);
                     }
                     pendingReset.set(false);
@@ -123,13 +137,19 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
             }
 
             @Override
-            protected List<T> doOptionalInBackground(Integer... params) {
-                return mLoaderDelegate.loadOptional(params[0]);
+            @SuppressWarnings("unchecked")
+            protected Pair<Integer, List<T>> doOptionalInBackground(Integer... params) {
+                List<T> result = mLoaderDelegate.loadOptional(params[0]);
+                Collections.sort(result);
+                return Pair.create(params[0], result);
             }
 
             @Override
-            protected List<T> doNecessaryInBackground(Integer... params) {
-                return mLoaderDelegate.loadNecessary(params[0]);
+            @SuppressWarnings("unchecked")
+            protected Pair<Integer, List<T>> doNecessaryInBackground(Integer... params) {
+                List<T> result = mLoaderDelegate.loadNecessary(params[0]);
+                Collections.sort(result);
+                return Pair.create(params[0], result);
             }
         };
         if (!pendingReset.get())
@@ -153,6 +173,12 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     @Override
     public void setObservableAdapter(RecyclerView.Adapter adapter) {
         mAdapterDelegate.mAdapter = adapter;
+    }
+
+    private void add(List<T> newData) {
+        int size = mData.size();
+        mData.addAll(newData);
+        mAdapterDelegate.notifyItemRangeChanged(size, newData.size());
     }
 
     private void update(List<T> newData) {

@@ -12,7 +12,29 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class DoubleAsyncTask<Params, Progress, Result> {
     boolean post = false;
+    private AsyncTask<Params, Progress, Result> mNecessaryTask = new AsyncTask<Params, Progress, Result>() {
+        @SafeVarargs
+        @Override
+        protected final Result doInBackground(Params... params) {
+            return doNecessaryInBackground(params);
+        }
 
+        @Override
+        protected void onPostExecute(Result result) {
+
+            onNecessaryPostExecute(result);
+            if (result != null) {
+                post = true;
+                DoubleAsyncTask.this.onPostExecute(result);
+                mOptionalTask.cancel(true);
+            } else if (mOptionalTask.getStatus() == AsyncTask.Status.FINISHED) {
+                post = true;
+                onPostExecute(null);
+
+            }
+
+        }
+    };
     private AsyncTask<Params, Progress, Result> mOptionalTask = new AsyncTask<Params, Progress, Result>() {
         @SafeVarargs
         @Override
@@ -31,29 +53,6 @@ public abstract class DoubleAsyncTask<Params, Progress, Result> {
             } else if (mNecessaryTask.getStatus() == AsyncTask.Status.FINISHED && !post) {
                 onPostExecute(null);
             }
-        }
-    };
-
-    private AsyncTask<Params, Progress, Result> mNecessaryTask = new AsyncTask<Params, Progress, Result>() {
-        @SafeVarargs
-        @Override
-        protected final Result doInBackground(Params... params) {
-            return doNecessaryInBackground(params);
-        }
-
-        @Override
-        protected void onPostExecute(Result result) {
-            onNecessaryPostExecute(result);
-            if (result != null) {
-                post = true;
-                DoubleAsyncTask.this.onPostExecute(result);
-                mOptionalTask.cancel(true);
-            } else if (mOptionalTask.getStatus() == AsyncTask.Status.FINISHED) {
-                post = true;
-                onPostExecute(null);
-
-            }
-
         }
     };
 
@@ -94,28 +93,6 @@ public abstract class DoubleAsyncTask<Params, Progress, Result> {
         }
     }
 
-    public enum Status {
-        /**
-         * Indicates that the task has not been executed yet.
-         */
-        PENDING,
-
-        /**
-         * Indicates that the task is running.
-         */
-        RUNNING,
-
-        /**
-         * Indicates that the optional load has finished.
-         */
-        CACHE_FINISHED,
-
-        /**
-         * Indicates that {@link AsyncTask#onPostExecute} has finished.
-         */
-        FINISHED,
-    }
-
     public boolean cancel(boolean mayInterruptIfRunning) {
         return mNecessaryTask.cancel(mayInterruptIfRunning) && mOptionalTask.cancel(mayInterruptIfRunning);
     }
@@ -150,5 +127,27 @@ public abstract class DoubleAsyncTask<Params, Progress, Result> {
 
     public Result necessaryGet(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return mNecessaryTask.get(timeout, unit);
+    }
+
+    public enum Status {
+        /**
+         * Indicates that the task has not been executed yet.
+         */
+        PENDING,
+
+        /**
+         * Indicates that the task is running.
+         */
+        RUNNING,
+
+        /**
+         * Indicates that the optional load has finished.
+         */
+        CACHE_FINISHED,
+
+        /**
+         * Indicates that {@link AsyncTask#onPostExecute} has finished.
+         */
+        FINISHED,
     }
 }
