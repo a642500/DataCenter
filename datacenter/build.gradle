@@ -24,6 +24,7 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile "com.android.support:recyclerview-v7:23.1.1"
+    provided "com.malinskiy:superrecyclerview:1.1.1"
 }
 
 apply from: ('publish.gradle')
