@@ -12,7 +12,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.malinskiy.superrecyclerview.OnMoreListener;
 import com.malinskiy.superrecyclerview.SuperRecyclerView;
 
 import java.util.ArrayList;
@@ -20,6 +19,7 @@ import java.util.List;
 
 import co.yishun.library.datacenter.DataCenter;
 import co.yishun.library.datacenter.DataCenterAdapter;
+import co.yishun.library.datacenter.SuperRecyclerViewLoadMore;
 import co.yishun.library.datacenter.SuperRecyclerViewRefreshable;
 import co.yishun.library.datacenter.Updatable;
 
@@ -42,20 +42,19 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
         adapter.setLoader(this);
         adapter.setOnEndListener(this);
         adapter.setRefreshable(new SuperRecyclerViewRefreshable(superRecyclerView));
+        adapter.setLoadMore(new SuperRecyclerViewLoadMore(superRecyclerView));
         superRecyclerView.setAdapter(adapter);
 
-        superRecyclerView.setOnMoreListener(new OnMoreListener() {
-            @Override
-            public void onMoreAsked(int overallItemsCount, int itemsBeforeMore, int maxLastVisiblePosition) {
-                adapter.loadNext();
-            }
-        });
         adapter.loadNext();
 
     }
 
     @Override
     public List<SampleStringData> loadOptional(int page) {
+        try {
+            Thread.sleep(1000 * 1);
+        } catch (InterruptedException ignore) {
+        }
         List<SampleStringData> result = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
             result.add(new SampleStringData(true, 100, i + page * 10));
@@ -66,7 +65,7 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
     @Override
     public List<SampleStringData> loadNecessary(int page) {
         try {
-            Thread.sleep(1000 * 10);
+            Thread.sleep(1000 * 7);
         } catch (InterruptedException ignore) {
         }
         List<SampleStringData> result = new ArrayList<>(10);
