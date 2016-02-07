@@ -84,6 +84,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     @Override
     public void loadNext() {
         if (mCurrentTask != null) {
+            //TODO bug: unable to load more, if begin with loading more as well as loading the first page.
             return;
         }
         mCurrentTask = new DoubleAsyncTask<Integer, Void, Pair<Integer, List<T>>>() {
