@@ -35,8 +35,6 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
 
         SuperRecyclerView superRecyclerView = (SuperRecyclerView) findViewById(R.id.superRecyclerView);
         superRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-//        RecyclerView recyclerView = ((RecyclerView) findViewById(R.id.recyclerView));
-//        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         final DataCenterAdapter<SampleStringData, SampleViewHolder> adapter = new SampleDataCenterAdapter(this);
         adapter.setLoader(this);
