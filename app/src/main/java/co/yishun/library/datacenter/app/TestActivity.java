@@ -12,11 +12,15 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.malinskiy.superrecyclerview.OnMoreListener;
+import com.malinskiy.superrecyclerview.SuperRecyclerView;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import co.yishun.library.datacenter.DataCenter;
 import co.yishun.library.datacenter.DataCenterAdapter;
+import co.yishun.library.datacenter.SuperRecyclerViewRefreshable;
 import co.yishun.library.datacenter.Updatable;
 
 /**
@@ -27,16 +31,25 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_test);
 
-        RecyclerView recyclerView = ((RecyclerView) findViewById(R.id.recyclerView));
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        SuperRecyclerView superRecyclerView = (SuperRecyclerView) findViewById(R.id.superRecyclerView);
+        superRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+//        RecyclerView recyclerView = ((RecyclerView) findViewById(R.id.recyclerView));
+//        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        DataCenterAdapter<SampleStringData, SampleViewHolder> adapter = new SampleDataCenterAdapter(this);
+        final DataCenterAdapter<SampleStringData, SampleViewHolder> adapter = new SampleDataCenterAdapter(this);
         adapter.setLoader(this);
-        adapter.setOnFailListener(this);
+        adapter.setOnEndListener(this);
+        adapter.setRefreshable(new SuperRecyclerViewRefreshable(superRecyclerView));
+        superRecyclerView.setAdapter(adapter);
 
-        recyclerView.setAdapter(adapter);
+        superRecyclerView.setOnMoreListener(new OnMoreListener() {
+            @Override
+            public void onMoreAsked(int overallItemsCount, int itemsBeforeMore, int maxLastVisiblePosition) {
+                adapter.loadNext();
+            }
+        });
         adapter.loadNext();
 
     }
@@ -45,7 +58,7 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
     public List<SampleStringData> loadOptional(int page) {
         List<SampleStringData> result = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
-            result.add(new SampleStringData(String.valueOf(page * 10 + i)));
+            result.add(new SampleStringData(false, 100, i + page * 10));
         }
         return result;
     }
@@ -58,7 +71,7 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
         }
         List<SampleStringData> result = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
-            result.add(new SampleStringData(String.valueOf(page * 10 + i)));
+            result.add(new SampleStringData(false, 1000, i + page * 10));
         }
         return result;
     }
@@ -92,24 +105,33 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
     }
 
     public final static class SampleStringData implements Updatable {
-        private final String mValue;
+        private final boolean cached;
+        private final int time;
+        private final int index;
 
-        public SampleStringData(String mValue) {
-            this.mValue = mValue;
+        public SampleStringData(boolean cached, int time, int index) {
+            this.time = time;
+            this.index = index;
+            this.cached = cached;
         }
 
         public String value() {
-            return mValue;
+            return index + (cached ? " cached" : "");
         }
 
         @Override
         public boolean updateThan(Updatable updatable) {
-            return false;
+            return time > ((SampleStringData) updatable).time;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof SampleStringData && this.index == ((SampleStringData) o).index;
         }
 
         @Override
         public int compareTo(@NonNull Object another) {
-            return 0;
+            return index - ((SampleStringData) another).index;
         }
     }
 
