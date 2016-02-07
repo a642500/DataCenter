@@ -58,7 +58,7 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
     public List<SampleStringData> loadOptional(int page) {
         List<SampleStringData> result = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
-            result.add(new SampleStringData(false, 100, i + page * 10));
+            result.add(new SampleStringData(true, 100, i + page * 10));
         }
         return result;
     }
@@ -99,7 +99,7 @@ public class TestActivity extends AppCompatActivity implements DataCenter.OnEndL
 
         @Override
         public SampleViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(getContext()).inflate(android.R.layout.simple_list_item_1, parent, false);
+            View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_item_list, parent, false);
             return new SampleViewHolder(view);
         }
     }
