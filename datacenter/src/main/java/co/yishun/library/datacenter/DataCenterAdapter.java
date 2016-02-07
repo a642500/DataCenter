@@ -58,6 +58,9 @@ public abstract class DataCenterAdapter<T extends Updatable, VH extends Recycler
 
     public abstract void onBindViewHolder(VH holder, int position, T data);
 
+    public void setLoadMore(LoadMore loadMore) {
+        mDataCenter.setLoadMore(loadMore);
+    }
 
     @Override
     public int getItemCount() {

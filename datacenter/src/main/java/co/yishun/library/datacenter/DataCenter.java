@@ -19,6 +19,8 @@ public interface DataCenter<T extends Updatable> {
 
     void setRefreshable(Refreshable refreshable);
 
+    void setLoadMore(LoadMore loadMore);
+
     void reset();
 
     void loadNext();

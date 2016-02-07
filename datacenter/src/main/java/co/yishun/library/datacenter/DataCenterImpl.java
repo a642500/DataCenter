@@ -22,9 +22,10 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     private final AdapterDelegate mAdapterDelegate = new AdapterDelegate();
     private final List<T> mData;
     private final LoaderDelegate<T> mLoaderDelegate = new LoaderDelegate<T>();
+    private final RefreshableDelegate mRefreshableDelegate = new RefreshableDelegate();
+    private final LoadMoreDelegate mLoadMoreDelegate = new LoadMoreDelegate();
     private OnEndListener mOnEndListener;
     private ExecutorService sExecutor = Executors.newFixedThreadPool(2);
-    private Refreshable mRefreshable;
     private AtomicBoolean pendingReset = new AtomicBoolean(false);
     private AtomicInteger page = new AtomicInteger(START_PAGE);
     private DoubleAsyncTask<Integer, Void, Pair<Integer, List<T>>> mCurrentTask;
@@ -56,23 +57,29 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         }
     }
 
-    private void setRefreshing(boolean refreshing) {
-        if (mRefreshable != null) {
-            mRefreshable.setRefreshing(refreshing);
-        }
+    @Override
+    public void setRefreshable(Refreshable refreshable) {
+        mRefreshableDelegate.mRefreshable = refreshable;
+        mRefreshableDelegate.setOnRefreshListener(new Refreshable.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                reset();
+                loadNext();
+            }
+        });
+
     }
 
     @Override
-    public void setRefreshable(Refreshable refreshable) {
-        mRefreshable = refreshable;
-        if (refreshable != null)
-            refreshable.setOnRefreshListener(new Refreshable.OnRefreshListener() {
-                @Override
-                public void onRefresh() {
-                    reset();
-                    loadNext();
-                }
-            });
+    public void setLoadMore(LoadMore loadMore) {
+        mLoadMoreDelegate.mLoadMore = loadMore;
+        mLoadMoreDelegate.setOnMoreListener(new LoadMore.OnMoreListener() {
+            @Override
+            public void onMore() {
+                mLoadMoreDelegate.setLoading(true);
+                loadNext();
+            }
+        });
     }
 
     @Override
@@ -98,8 +105,9 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
                     onFail(pageCopy);
 
                     mCurrentTask = null;
-                    setRefreshing(false);
-                    mRefreshable.setEnabled(true);
+                    mRefreshableDelegate.setRefreshing(false);
+                    mLoadMoreDelegate.setLoading(false);
+                    mRefreshableDelegate.setEnabled(true);
                 } else {
                     pageLock.lock();
 
@@ -114,8 +122,8 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
                     if (post) {
                         // last callback
                         mCurrentTask = null;
-                        setRefreshing(false);
-                        mRefreshable.setEnabled(true);
+                        mLoadMoreDelegate.setLoading(false);
+                        mRefreshableDelegate.setEnabled(true);
                     }
                 }
             }
@@ -128,11 +136,13 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
                     } else {
                         page.incrementAndGet();
                         mData.clear();
-                        add(requestAndResult.second);
+                        mData.addAll(requestAndResult.second);
+                        mAdapterDelegate.notifyDataSetChanged();
                         onSuccess(RESET_PAGE);
                     }
                     pendingReset.set(false);
-                    setRefreshing(false);
+                    mRefreshableDelegate.setRefreshing(false);
+                    mLoadMoreDelegate.setEnabled(true);
                     mCurrentTask = null;
                 }
             }
@@ -153,8 +163,11 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
                 return Pair.create(params[0], result);
             }
         };
-        if (!pendingReset.get())
-            mRefreshable.setEnabled(false);
+        if (pendingReset.get()) {
+            mLoadMoreDelegate.setEnabled(false);
+        } else {
+            mRefreshableDelegate.setEnabled(false);
+        }
         mCurrentTask.executeOnExecutor(sExecutor, page.get());
     }
 
@@ -201,7 +214,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     }
 
 
-    public static class AdapterDelegate {
+    private static class AdapterDelegate {
         private RecyclerView.Adapter mAdapter;
 
         public AdapterDelegate() {
@@ -268,7 +281,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         }
     }
 
-    public static class LoaderDelegate<T extends Updatable> {
+    private static class LoaderDelegate<T extends Updatable> {
         DataLoader<T> loader;
 
         public LoaderDelegate() {
@@ -290,6 +303,50 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
                 throw new IllegalStateException("You should set DataLoader.");
             }
 
+        }
+    }
+
+    private static class RefreshableDelegate {
+        private Refreshable mRefreshable;
+
+        public RefreshableDelegate() {
+        }
+
+        public void setOnRefreshListener(Refreshable.OnRefreshListener listener) {
+            if (mRefreshable != null)
+                mRefreshable.setOnRefreshListener(listener);
+        }
+
+        public void setRefreshing(boolean refreshing) {
+            if (mRefreshable != null)
+                mRefreshable.setRefreshing(refreshing);
+        }
+
+        public void setEnabled(boolean enabled) {
+            if (mRefreshable != null)
+                mRefreshable.setEnabled(enabled);
+        }
+    }
+
+    private static class LoadMoreDelegate {
+        private LoadMore mLoadMore;
+
+        public LoadMoreDelegate() {
+        }
+
+        public void setOnMoreListener(LoadMore.OnMoreListener listener) {
+            if (mLoadMore != null)
+                mLoadMore.setOnMoreListener(listener);
+        }
+
+        public void setEnabled(boolean enabled) {
+            if (mLoadMore != null)
+                mLoadMore.setEnabled(enabled);
+        }
+
+        public void setLoading(boolean refreshing) {
+            if (mLoadMore != null)
+                mLoadMore.setLoading(refreshing);
         }
     }
 }
