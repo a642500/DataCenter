@@ -25,6 +25,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 }
 
 javadoc {
+    failOnError = false
     classpath = configurations.compile
     options {
         encoding "UTF-8"
@@ -77,7 +78,7 @@ install {
 
 bintray {
     user = BINTRAY_USER
-    key = Properties.hasProperty("BINTRAY_API_KEY") ? BINTRAY_API_KEY : ""
+    key = project.properties.containsKey("BINTRAY_API_KEY") ? BINTRAY_API_KEY : ""
     configurations = ['archives']
     pkg {
         repo = 'maven'
