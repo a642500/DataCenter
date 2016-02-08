@@ -26,12 +26,12 @@ import co.yishun.library.datacenter.Updatable;
 /**
  * Created by carlos on 2/5/16.
  */
-public class TestActivity extends AppCompatActivity implements DataCenter.OnEndListener, DataCenter.DataLoader<TestActivity.SampleStringData> {
+public class SuperRecyclerViewSampleActivity extends AppCompatActivity implements DataCenter.OnEndListener, DataCenter.DataLoader<SuperRecyclerViewSampleActivity.SampleStringData> {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_test);
+        setContentView(R.layout.activity_super_recycler_view);
 
         SuperRecyclerView superRecyclerView = (SuperRecyclerView) findViewById(R.id.superRecyclerView);
         superRecyclerView.setLayoutManager(new LinearLayoutManager(this));
