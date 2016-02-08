@@ -1,6 +1,24 @@
 # DataCenter
 
-a controller to handle data loading and forwarding data changes to adapter.
+A controller to handle data loading and forwarding data changes to adapter.
+
+
+## Dependency
+
+```gradle
+
+    repositories {
+        jcenter()
+    }
+    
+    dependencies {
+        compile 'co.yishun.library:datacenter:0.1.1'
+    }
+
+
+```
+
+## Usage
 
 ```java
 
@@ -18,6 +36,7 @@ a controller to handle data loading and forwarding data changes to adapter.
         adapter.loadNext();
 
 ```
+
 You should implement 
 
 ```java
@@ -36,6 +55,7 @@ always updated but cost time.
     
 The result item ```T``` must implement Updatable interface which can be ordered and comparable its freshness. 
 This method determines which ```T``` will be kept, if the DataLoader return multiple items at one position.
+
 ```
         boolean updateThan(Updatable another);
 ```
