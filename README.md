@@ -12,7 +12,7 @@ A controller to handle data loading and forwarding data changes to adapter.
     }
     
     dependencies {
-        compile 'co.yishun.library:datacenter:0.0.1'
+        compile 'co.yishun.library:datacenter:0.0.2'
     }
 
 
@@ -31,6 +31,7 @@ A controller to handle data loading and forwarding data changes to adapter.
         adapter.setOnEndListener(this);
         adapter.setRefreshable(new SuperRecyclerViewRefreshable(superRecyclerView));
         adapter.setLoadMore(new SuperRecyclerViewLoadMore(superRecyclerView));
+        adapter.setLoadIndexProvider(new PageIntegerLoadIndexProvider<SampleStringData>());
         superRecyclerView.setAdapter(adapter);
 
         adapter.loadNext();
@@ -41,15 +42,15 @@ You should implement
 
 ```java
 
-    interface DataLoader<T extends Updatable> {
-        List<T> loadOptional(int page);
+    interface DataLoader<I extends LoadIndexProvider.LoadIndex<T>, T extends Updatable> {
+        List<T> loadOptional(I index);
 
-        List<T> loadNecessary(int page);
+        List<T> loadNecessary(I index);
     }
 ```
 
-to load targeted page. ```List<T> loadOptional(int page);``` often loads from cache which is 
-responsive but less freshness. ```List<T> loadOptional(int page);``` loads from network which is 
+to load targeted page. ```List<T> loadOptional(I index);``` often loads from cache which is 
+responsive but less freshness. ```List<T> loadOptional(I index);``` loads from network which is 
 always updated but cost time.
     
     
