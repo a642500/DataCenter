@@ -25,4 +25,22 @@ public class PageIntegerLoadIndex<T extends Updatable> implements LoadIndexProvi
     public void reset() {
         page = 0;
     }
+
+    @Override
+    public boolean equals(LoadIndexProvider.LoadIndex<T> another) {
+        return another instanceof PageIntegerLoadIndex && this.page == ((PageIntegerLoadIndex) another).page;
+    }
+
+    @Override
+    public LoadIndexProvider.LoadIndex<T> getCopy() {
+        try {
+            //noinspection unchecked
+            return (LoadIndexProvider.LoadIndex<T>) this.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
 }

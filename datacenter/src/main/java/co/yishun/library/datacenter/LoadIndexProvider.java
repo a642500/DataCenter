@@ -13,9 +13,13 @@ public interface LoadIndexProvider<I extends LoadIndexProvider.LoadIndex<T>, T e
 
     I resetIndex();
 
-    interface LoadIndex<T extends Updatable> {
+    interface LoadIndex<T extends Updatable> extends Cloneable {
         void increment(List<T> result);
 
         void reset();
+
+        boolean equals(LoadIndex<T> another);
+
+        LoadIndex<T> getCopy();
     }
 }

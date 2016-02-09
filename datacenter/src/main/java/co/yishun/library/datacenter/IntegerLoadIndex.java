@@ -25,4 +25,20 @@ public class IntegerLoadIndex<T extends Updatable> implements LoadIndexProvider.
     public void reset() {
         value = 0;
     }
+
+    @Override
+    public boolean equals(LoadIndexProvider.LoadIndex<T> another) {
+        return another instanceof IntegerLoadIndex && this.value == ((IntegerLoadIndex) another).value;
+    }
+
+    @Override
+    public LoadIndexProvider.LoadIndex<T> getCopy() {
+        try {
+            //noinspection unchecked
+            return (LoadIndexProvider.LoadIndex<T>) this.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

@@ -115,7 +115,7 @@ public class DataCenterImpl<I extends LoadIndexProvider.LoadIndex<T>, T extends 
                 } else {
                     pageLock.lock();
 
-                    if (indexCopy == mIndex) {
+                    if (indexCopy.equals(mIndex)) {
                         // Difference means those code had been called once.
                         add(requestAndResult.second);
                         onSuccess(indexCopy);
@@ -177,7 +177,7 @@ public class DataCenterImpl<I extends LoadIndexProvider.LoadIndex<T>, T extends 
             mRefreshableDelegate.setEnabled(false);
         }
         //noinspection unchecked
-        mCurrentTask.executeOnExecutor(sExecutor, mIndex);
+        mCurrentTask.executeOnExecutor(sExecutor, (I) mIndex.getCopy());
     }
 
     @Override
