@@ -19,6 +19,8 @@ import java.util.List;
 
 import co.yishun.library.datacenter.DataCenter;
 import co.yishun.library.datacenter.DataCenterAdapter;
+import co.yishun.library.datacenter.PageIntegerLoadIndex;
+import co.yishun.library.datacenter.PageIntegerLoadIndexProvider;
 import co.yishun.library.datacenter.SuperRecyclerViewLoadMore;
 import co.yishun.library.datacenter.SuperRecyclerViewRefreshable;
 import co.yishun.library.datacenter.Updatable;
@@ -26,7 +28,11 @@ import co.yishun.library.datacenter.Updatable;
 /**
  * Created by carlos on 2/5/16.
  */
-public class SuperRecyclerViewSampleActivity extends AppCompatActivity implements DataCenter.OnEndListener, DataCenter.DataLoader<SuperRecyclerViewSampleActivity.SampleStringData> {
+public class SuperRecyclerViewSampleActivity extends AppCompatActivity implements
+        DataCenter.OnEndListener<PageIntegerLoadIndex<SuperRecyclerViewSampleActivity.SampleStringData>
+                , SuperRecyclerViewSampleActivity.SampleStringData>,
+        DataCenter.DataLoader<PageIntegerLoadIndex<SuperRecyclerViewSampleActivity.SampleStringData>
+                , SuperRecyclerViewSampleActivity.SampleStringData> {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,11 +42,13 @@ public class SuperRecyclerViewSampleActivity extends AppCompatActivity implement
         SuperRecyclerView superRecyclerView = (SuperRecyclerView) findViewById(R.id.superRecyclerView);
         superRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        final DataCenterAdapter<SampleStringData, SampleViewHolder> adapter = new SampleDataCenterAdapter(this);
+        final DataCenterAdapter<PageIntegerLoadIndex<SuperRecyclerViewSampleActivity.SampleStringData>,
+                SampleStringData, SampleViewHolder> adapter = new SampleDataCenterAdapter(this);
         adapter.setLoader(this);
         adapter.setOnEndListener(this);
         adapter.setRefreshable(new SuperRecyclerViewRefreshable(superRecyclerView));
         adapter.setLoadMore(new SuperRecyclerViewLoadMore(superRecyclerView));
+        adapter.setLoadIndexProvider(new PageIntegerLoadIndexProvider<SampleStringData>());
         superRecyclerView.setAdapter(adapter);
 
         adapter.loadNext();
@@ -48,42 +56,44 @@ public class SuperRecyclerViewSampleActivity extends AppCompatActivity implement
     }
 
     @Override
-    public List<SampleStringData> loadOptional(int page) {
+    public List<SampleStringData> loadOptional(PageIntegerLoadIndex<SampleStringData> index) {
         try {
             Thread.sleep(1000 * 1);
         } catch (InterruptedException ignore) {
         }
         List<SampleStringData> result = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
-            result.add(new SampleStringData(true, 100, i + page * 10));
+            result.add(new SampleStringData(true, 100, i + index.getPage() * 10));
         }
         return result;
     }
 
     @Override
-    public List<SampleStringData> loadNecessary(int page) {
+    public List<SampleStringData> loadNecessary(PageIntegerLoadIndex<SampleStringData> index) {
         try {
             Thread.sleep(1000 * 7);
         } catch (InterruptedException ignore) {
         }
         List<SampleStringData> result = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
-            result.add(new SampleStringData(false, 1000, i + page * 10));
+            result.add(new SampleStringData(false, 1000, i + index.getPage() * 10));
         }
         return result;
     }
 
     @Override
-    public void onFail(int page) {
+    public void onFail(PageIntegerLoadIndex<SampleStringData> index) {
         Toast.makeText(this, "fail!", Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public void onSuccess(int page) {
+    public void onSuccess(PageIntegerLoadIndex<SampleStringData> index) {
 
     }
 
-    public final static class SampleDataCenterAdapter extends DataCenterAdapter<SampleStringData, SampleViewHolder> {
+    public final static class SampleDataCenterAdapter extends
+            DataCenterAdapter<PageIntegerLoadIndex<SuperRecyclerViewSampleActivity.SampleStringData>,
+                    SampleStringData, SampleViewHolder> {
         public SampleDataCenterAdapter(FragmentActivity activity) {
             super(activity);
         }
