@@ -9,14 +9,18 @@ import java.util.List;
 /**
  * Created by carlos on 2/5/16.
  */
-public abstract class DataCenterAdapter<T extends Updatable, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
-    private DataCenter<T> mDataCenter;
+public abstract class DataCenterAdapter<I extends LoadIndexProvider.LoadIndex<T>, T extends Updatable, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
+    private DataCenter<I, T> mDataCenter;
     private Context mContext;
 
     public DataCenterAdapter(FragmentActivity activity) {
         mContext = activity.getApplicationContext();
         mDataCenter = DataCenters.getDataCenter();
         mDataCenter.setObservableAdapter(this);
+    }
+
+    public void setLoadIndexProvider(LoadIndexProvider<I, T> provider) {
+        mDataCenter.setLoadIndexProvider(provider);
     }
 
     public void setRefreshable(Refreshable refreshable) {
@@ -31,11 +35,11 @@ public abstract class DataCenterAdapter<T extends Updatable, VH extends Recycler
         return mContext;
     }
 
-    public void setOnEndListener(DataCenter.OnEndListener listener) {
+    public void setOnEndListener(DataCenter.OnEndListener<I, T> listener) {
         mDataCenter.setOnEndListener(listener);
     }
 
-    public void setLoader(DataCenter.DataLoader<T> dataLoader) {
+    public void setLoader(DataCenter.DataLoader<I, T> dataLoader) {
         mDataCenter.setLoader(dataLoader);
     }
 

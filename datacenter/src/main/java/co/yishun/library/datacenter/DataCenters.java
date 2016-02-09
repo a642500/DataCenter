@@ -8,7 +8,7 @@ public class DataCenters {
 //        return new DataCenterImpl<>(baseData);
 //    }
 //
-    public static <T extends Updatable> DataCenter<T> getDataCenter() {
+    public static <I extends LoadIndexProvider.LoadIndex<T>, T extends Updatable> DataCenter<I, T> getDataCenter() {
         return new DataCenterImpl<>();
     }
 }

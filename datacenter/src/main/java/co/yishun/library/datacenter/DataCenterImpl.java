@@ -9,26 +9,24 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by carlos on 2/5/16.
  */
-public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
-    public static final int START_PAGE = 0;
-    public static final int RESET_PAGE = -1;
+public class DataCenterImpl<I extends LoadIndexProvider.LoadIndex<T>, T extends Updatable> implements DataCenter<I, T> {
     private final AdapterDelegate mAdapterDelegate = new AdapterDelegate();
     private final List<T> mData;
-    private final LoaderDelegate<T> mLoaderDelegate = new LoaderDelegate<T>();
+    private final LoaderDelegate<I, T> mLoaderDelegate = new LoaderDelegate<>();
     private final RefreshableDelegate mRefreshableDelegate = new RefreshableDelegate();
     private final LoadMoreDelegate mLoadMoreDelegate = new LoadMoreDelegate();
-    private OnEndListener mOnEndListener;
+    private OnEndListener<I, T> mOnEndListener;
     private ExecutorService sExecutor = Executors.newFixedThreadPool(2);
     private AtomicBoolean pendingReset = new AtomicBoolean(false);
-    private AtomicInteger page = new AtomicInteger(START_PAGE);
-    private DoubleAsyncTask<Integer, Void, Pair<Integer, List<T>>> mCurrentTask;
+    private I mIndex;
+    private I mResetIndex;
+    private DoubleAsyncTask<I, Void, Pair<I, List<T>>> mCurrentTask;
     private Lock pageLock = new ReentrantLock();
 
     DataCenterImpl() {
@@ -36,24 +34,30 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
     }
 
     @Override
-    public void setLoader(final DataLoader<T> dataLoader) {
+    public void setLoadIndexProvider(LoadIndexProvider<I, T> provider) {
+        mIndex = provider.initInstance();
+        mResetIndex = provider.resetIndex();
+    }
+
+    @Override
+    public void setLoader(DataLoader<I, T> dataLoader) {
         mLoaderDelegate.loader = dataLoader;
     }
 
     @Override
-    public void setOnEndListener(OnEndListener listener) {
+    public void setOnEndListener(OnEndListener<I, T> listener) {
         mOnEndListener = listener;
     }
 
-    private void onFail(int page) {
+    private void onFail(I index) {
         if (mOnEndListener != null) {
-            mOnEndListener.onFail(page);
+            mOnEndListener.onFail(index);
         }
     }
 
-    private void onSuccess(int page) {
+    private void onSuccess(I index) {
         if (mOnEndListener != null) {
-            mOnEndListener.onSuccess(page);
+            mOnEndListener.onSuccess(index);
         }
     }
 
@@ -84,7 +88,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
 
     @Override
     public void reset() {
-        page.set(0);
+        mIndex.reset();
         pendingReset.set(true);
     }
 
@@ -94,15 +98,15 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
             //TODO bug: unable to load more, if begin with loading more as well as loading the first page.
             return;
         }
-        mCurrentTask = new DoubleAsyncTask<Integer, Void, Pair<Integer, List<T>>>() {
+        mCurrentTask = new DoubleAsyncTask<I, Void, Pair<I, List<T>>>() {
             @Override
-            protected void onPostExecute(Pair<Integer, List<T>> requestAndResult) {
-                int pageCopy = requestAndResult.first;
+            protected void onPostExecute(Pair<I, List<T>> requestAndResult) {
+                I indexCopy = requestAndResult.first;//TODO copy index
                 if (pendingReset.get()) {
                     return;// handle by necessary post only, skip
                 }
                 if (requestAndResult.second == null) {
-                    onFail(pageCopy);
+                    onFail(indexCopy);
 
                     mCurrentTask = null;
                     mRefreshableDelegate.setRefreshing(false);
@@ -111,11 +115,11 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
                 } else {
                     pageLock.lock();
 
-                    if (pageCopy == page.get()) {
+                    if (indexCopy == mIndex) {
                         // Difference means those code had been called once.
                         add(requestAndResult.second);
-                        onSuccess(pageCopy);
-                        page.incrementAndGet();
+                        onSuccess(indexCopy);
+                        mIndex.increment(requestAndResult.second);
                     } else {
                         update(requestAndResult.second);
                     }
@@ -129,16 +133,16 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
             }
 
             @Override
-            protected void onNecessaryPostExecute(Pair<Integer, List<T>> requestAndResult) {
+            protected void onNecessaryPostExecute(Pair<I, List<T>> requestAndResult) {
                 if (pendingReset.get()) {
                     if (requestAndResult.second == null) {
-                        onFail(RESET_PAGE);
+                        onFail(mResetIndex);
                     } else {
-                        page.incrementAndGet();
+                        mIndex.increment(requestAndResult.second);
                         mData.clear();
                         mData.addAll(requestAndResult.second);
                         mAdapterDelegate.notifyDataSetChanged();
-                        onSuccess(RESET_PAGE);
+                        onSuccess(mResetIndex);
                     }
                     pendingReset.set(false);
                     mRefreshableDelegate.setRefreshing(false);
@@ -149,7 +153,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
 
             @Override
             @SuppressWarnings("unchecked")
-            protected Pair<Integer, List<T>> doOptionalInBackground(Integer... params) {
+            protected Pair<I, List<T>> doOptionalInBackground(I... params) {
                 List<T> result = mLoaderDelegate.loadOptional(params[0]);
                 Collections.sort(result);
                 return Pair.create(params[0], result);
@@ -157,7 +161,7 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
 
             @Override
             @SuppressWarnings("unchecked")
-            protected Pair<Integer, List<T>> doNecessaryInBackground(Integer... params) {
+            protected Pair<I, List<T>> doNecessaryInBackground(I... params) {
                 List<T> result = mLoaderDelegate.loadNecessary(params[0]);
                 Collections.sort(result);
                 return Pair.create(params[0], result);
@@ -168,7 +172,8 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         } else {
             mRefreshableDelegate.setEnabled(false);
         }
-        mCurrentTask.executeOnExecutor(sExecutor, page.get());
+        //noinspection unchecked
+        mCurrentTask.executeOnExecutor(sExecutor, mIndex);
     }
 
     @Override
@@ -281,24 +286,24 @@ public class DataCenterImpl<T extends Updatable> implements DataCenter<T> {
         }
     }
 
-    private static class LoaderDelegate<T extends Updatable> {
-        DataLoader<T> loader;
+    private static class LoaderDelegate<I extends LoadIndexProvider.LoadIndex<T>, T extends Updatable> {
+        DataLoader<I, T> loader;
 
         public LoaderDelegate() {
         }
 
-        public List<T> loadOptional(int page) {
+        public List<T> loadOptional(I index) {
             if (loader != null) {
-                return loader.loadOptional(page);
+                return loader.loadOptional(index);
             } else {
                 throw new IllegalStateException("You should set DataLoader.");
             }
 
         }
 
-        public List<T> loadNecessary(int page) {
+        public List<T> loadNecessary(I index) {
             if (loader != null) {
-                return loader.loadNecessary(page);
+                return loader.loadNecessary(index);
             } else {
                 throw new IllegalStateException("You should set DataLoader.");
             }
