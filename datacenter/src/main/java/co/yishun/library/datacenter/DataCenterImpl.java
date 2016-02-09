@@ -155,7 +155,9 @@ public class DataCenterImpl<I extends LoadIndexProvider.LoadIndex<T>, T extends 
             @SuppressWarnings("unchecked")
             protected Pair<I, List<T>> doOptionalInBackground(I... params) {
                 List<T> result = mLoaderDelegate.loadOptional(params[0]);
-                Collections.sort(result);
+                if (result != null) {
+                    Collections.sort(result);
+                }
                 return Pair.create(params[0], result);
             }
 
@@ -163,7 +165,9 @@ public class DataCenterImpl<I extends LoadIndexProvider.LoadIndex<T>, T extends 
             @SuppressWarnings("unchecked")
             protected Pair<I, List<T>> doNecessaryInBackground(I... params) {
                 List<T> result = mLoaderDelegate.loadNecessary(params[0]);
-                Collections.sort(result);
+                if (result != null) {
+                    Collections.sort(result);
+                }
                 return Pair.create(params[0], result);
             }
         };
