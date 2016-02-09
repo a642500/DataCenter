@@ -10,8 +10,28 @@ import java.util.concurrent.TimeoutException;
 /**
  * Created by carlos on 2/5/16.
  */
-public abstract class DoubleAsyncTask<Params, Progress, Result> {
+public abstract class DoubleAsyncTask<Params, Progress, Result extends Discardable> {
     boolean post = false;
+    private AsyncTask<Params, Progress, Result> mOptionalTask = new AsyncTask<Params, Progress, Result>() {
+        @SafeVarargs
+        @Override
+        protected final Result doInBackground(Params... params) {
+            return doOptionalInBackground(params);
+        }
+
+        @Override
+        protected void onPostExecute(Result result) {
+            onOptionPostExecute(result);
+            if (!result.needDiscard()) {
+                if (!post) {
+                    DoubleAsyncTask.this.onPostExecute(result);
+                }
+                // abandon result
+            } else if (mNecessaryTask.getStatus() == AsyncTask.Status.FINISHED && !post) {
+                onPostExecute(null);
+            }
+        }
+    };
     private AsyncTask<Params, Progress, Result> mNecessaryTask = new AsyncTask<Params, Progress, Result>() {
         @SafeVarargs
         @Override
@@ -23,7 +43,7 @@ public abstract class DoubleAsyncTask<Params, Progress, Result> {
         protected void onPostExecute(Result result) {
 
             onNecessaryPostExecute(result);
-            if (result != null) {
+            if (!result.needDiscard()) {
                 post = true;
                 DoubleAsyncTask.this.onPostExecute(result);
                 mOptionalTask.cancel(true);
@@ -33,26 +53,6 @@ public abstract class DoubleAsyncTask<Params, Progress, Result> {
 
             }
 
-        }
-    };
-    private AsyncTask<Params, Progress, Result> mOptionalTask = new AsyncTask<Params, Progress, Result>() {
-        @SafeVarargs
-        @Override
-        protected final Result doInBackground(Params... params) {
-            return doOptionalInBackground(params);
-        }
-
-        @Override
-        protected void onPostExecute(Result result) {
-            onOptionPostExecute(result);
-            if (result != null) {
-                if (!post) {
-                    DoubleAsyncTask.this.onPostExecute(result);
-                }
-                // abandon result
-            } else if (mNecessaryTask.getStatus() == AsyncTask.Status.FINISHED && !post) {
-                onPostExecute(null);
-            }
         }
     };
 
