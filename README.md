@@ -12,7 +12,7 @@ A controller to handle data loading and forwarding data changes to adapter.
     }
     
     dependencies {
-        compile 'co.yishun.library:datacenter:0.0.2'
+        compile 'co.yishun.library:datacenter:0.0.4'
     }
 
 
